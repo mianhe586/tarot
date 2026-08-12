@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>塔羅抽牌</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px; font-family: "Noto Serif TC","Songti TC","PMingLiU",Georgia,serif;
+  background: #faf8f4; color: #241f1a; line-height: 1.75; }
+.wrap { max-width: 980px; margin: 0 auto; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: .04em; }
+.sub { color: #7d7268; font-size: 13px; margin-bottom: 20px; }
+.step { display: none; } .step.on { display: block; }
+.stepbar { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+.stepbar span { font-size: 12px; padding: 4px 12px; border-radius: 999px; background: #ece5da; color: #8b8075; }
+.stepbar span.cur { background: #2e3f5c; color: #fff; }
+.stepbar span.done { background: #c6b79f; color: #fff; }
+h2 { font-size: 17px; margin: 0 0 14px; color: #2e3f5c; }
+.cards3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 14px; }
+.pick { border: 1px solid #ddd3c4; background: #fff; border-radius: 10px; padding: 18px;
+  cursor: pointer; text-align: left; font: inherit; color: inherit; transition: .15s; }
+.pick:hover { border-color: #2e3f5c; box-shadow: 0 3px 14px rgba(46,63,92,.12); transform: translateY(-2px); }
+.pick b { display: block; font-size: 16px; margin-bottom: 6px; color: #2e3f5c; }
+.pick p { margin: 0; font-size: 13px; color: #6d6459; line-height: 1.65; }
+.pick .cnt { display: inline-block; margin-top: 10px; font-size: 12px; color: #a1937f; }
+.mini { position: relative; width: 100%; margin: 12px 0 4px; background: #f5f0e7; border-radius: 6px; }
+.mini i { position: absolute; background: #cfc2ab; border-radius: 2px; font-style: normal;
+  font-size: 9px; color: #fff; display: flex; align-items: center; justify-content: center; }
+textarea { width: 100%; min-height: 96px; padding: 14px; font: inherit; font-size: 15px;
+  border: 1px solid #ddd3c4; border-radius: 10px; background: #fff; resize: vertical; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 22px; }
+.chip { padding: 7px 18px; border-radius: 999px; border: 1px solid #ddd3c4; background: #fff;
+  cursor: pointer; font: inherit; font-size: 14px; color: #6d6459; }
+.chip.on { background: #2e3f5c; border-color: #2e3f5c; color: #fff; }
+button.go { padding: 11px 30px; border-radius: 999px; border: none; background: #2e3f5c;
+  color: #fff; font: inherit; font-size: 15px; cursor: pointer; }
+button.ghost { padding: 9px 22px; border-radius: 999px; border: 1px solid #ddd3c4; background: #fff;
+  color: #6d6459; font: inherit; font-size: 14px; cursor: pointer; }
+.shufrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 6px 0 2px; }
+button.shuf { padding: 11px 28px; border-radius: 999px; border: 1px solid #2e3f5c; background: #fff;
+  color: #2e3f5c; font: inherit; font-size: 15px; cursor: pointer; user-select: none;
+  -webkit-user-select: none; touch-action: none; }
+button.shuf.on { background: #2e3f5c; color: #fff; }
+.shufhint { font-size: 13px; color: #8b8075; }
+.prog { font-size: 14px; color: #6d6459; margin: 8px 0 0; } .prog b { color: #2e3f5c; font-size: 16px; }
+.slotnow { background: #fff; border: 1px solid #ddd3c4; border-left: 4px solid #2e3f5c;
+  border-radius: 8px; padding: 12px 16px; margin-top: 14px; font-size: 14px; }
+.slotnow b { color: #2e3f5c; }
+.taken { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 2px; }
+.tk { font-size: 12px; padding: 5px 12px; border-radius: 999px; background: #fff;
+  border: 1px solid #ddd3c4; color: #4a4137; }
+.tk b { color: #2e3f5c; } .tk .u { color: #4a6b47; } .tk .r { color: #9a5449; }
+.deck { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px,1fr)); gap: 7px; margin-top: 16px; }
+.back { aspect-ratio: 5/8; border-radius: 4px; cursor: pointer; border: none; padding: 0;
+  background: repeating-linear-gradient(45deg,#2e3f5c,#2e3f5c 3px,#3a4d6e 3px,#3a4d6e 6px);
+  transition: transform .13s ease, box-shadow .13s ease, background .2s; }
+.back:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(46,63,92,.3); }
+.back.used { background: #e3ddd2; cursor: default; transform: none !important; box-shadow: none; }
+.deck.shuffling .back { transition: transform .11s cubic-bezier(.4,0,.5,1); }
+.deck.shuffling .back:hover { box-shadow: none; }
+.ovl { position: fixed; inset: 0; background: rgba(36,31,26,.55); display: none;
+  align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+.ovl.on { display: flex; }
+.revealbox { text-align: center; max-width: 340px; width: 100%; }
+.rslot { color: #f3ece1; font-size: 14px; margin-bottom: 14px; } .rslot b { color: #fff; font-size: 16px; }
+.perspec { perspective: 1000px; width: 190px; margin: 0 auto 18px; }
+.flip { position: relative; width: 100%; aspect-ratio: 5/8; transform-style: preserve-3d;
+  transform: rotateY(180deg); transition: transform .75s cubic-bezier(.3,.9,.35,1); }
+.flip.on { transform: rotateY(0deg); }
+.fface { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 14px; text-align: center; }
+.fback { transform: rotateY(180deg); border: 3px solid #f3ece1;
+  background: repeating-linear-gradient(45deg,#2e3f5c,#2e3f5c 5px,#3a4d6e 5px,#3a4d6e 10px); }
+.ffront { background: #fdfbf7; border: 1px solid #cbbfa9; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.ffront .inner { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ffront.rev .inner { transform: rotate(180deg); }
+.ffront .grp { font-size: 11px; color: #a1937f; letter-spacing: .1em; }
+.ffront .zh { font-size: 21px; font-weight: 700; color: #2e3f5c; line-height: 1.25; }
+.ffront .en { font-size: 12px; color: #8b8075; }
+.rname { color: #f3ece1; font-size: 14px; min-height: 22px; margin-bottom: 16px; }
+.rname .badge { display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 12px; }
+.rname .badge.up { background: #dff0da; color: #3d6139; }
+.rname .badge.rev { background: #f6dcd7; color: #8d4a3f; }
+.q { background: #f1ece2; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 14px; }
+.q b { color: #2e3f5c; }
+.board { position: relative; width: 100%; margin: 10px auto 26px; }
+.slot { position: absolute; }
+.slotcard { width: 100%; height: 100%; border-radius: 6px; background: #fff; border: 1px solid #cbbfa9;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px;
+  text-align: center; font-size: 11px; line-height: 1.3; overflow: hidden; position: relative; }
+.slotcard .no { position: absolute; top: 3px; left: 5px; font-size: 10px; color: #b3a894; }
+.slotcard .nm { font-weight: 700; color: #2e3f5c; font-size: 12px; }
+.slotcard.rev .nm { transform: rotate(180deg); }
+.slotcard .or { font-size: 10px; margin-top: 3px; padding: 1px 7px; border-radius: 999px; }
+.or.up { background: #e4ede1; color: #4a6b47; }
+.or.rev { background: #f3e3e0; color: #9a5449; }
+.rows { border-top: 1px solid #e6ded2; padding-top: 18px; }
+.row { display: flex; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid #f0eae0; }
+.row .idx { flex: none; width: 26px; color: #a1937f; font-size: 13px; }
+.row .lab { flex: none; width: 116px; color: #6d6459; font-size: 13.5px; }
+.row .cd { flex: 1; font-size: 15px; color: #241f1a; }
+.row .cd em { font-style: normal; font-size: 12px; color: #8b8075; margin-left: 6px; }
+.row .or { flex: none; }
+.copybox { background: #fff; border: 1px solid #ddd3c4; border-radius: 12px; padding: 18px 20px; margin: 24px 0; }
+.copybox p { margin: 0 0 12px; font-size: 13.5px; color: #6d6459; }
+.copybox textarea { min-height: 150px; font-size: 13px; line-height: 1.6; background: #faf8f4; }
+.cpbtns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+.ok { font-size: 13px; color: #4a6b47; }
+.foot { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+.hislist { display: flex; flex-direction: column; gap: 10px; }
+.hisrow { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  background: #fff; border: 1px solid #ddd3c4; border-radius: 10px; padding: 14px 16px; }
+.hisrow .info { flex: 1; min-width: 0; cursor: pointer; }
+.hisrow .when { font-size: 12px; color: #a1937f; letter-spacing: .03em; }
+.hisrow .qq { font-size: 15px; margin: 3px 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hisrow .meta { font-size: 12px; color: #8b8075; }
+.hisrow .meta em { font-style: normal; color: #2e3f5c; }
+.hisrow .del { border: none; background: none; color: #b9a894; font: inherit; font-size: 13px;
+  cursor: pointer; padding: 6px 8px; border-radius: 6px; flex: none; }
+.hisrow .del:hover { background: #f6ece9; color: #9a5449; }
+.empty { color: #8b8075; font-size: 14px; padding: 30px 0; text-align: center; }
+.detail { display: none; } .detail.on { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1>塔羅抽牌</h1>
+      <div class="sub">這個工具只負責洗牌、抽牌與保存結果，不提供牌義解讀。</div>
+    </div>
+    <button class="ghost" id="hisBtn">抽牌紀錄</button>
+  </div>
+
+  <div class="stepbar" id="stepbar">
+    <span id="b1">1 選牌陣</span><span id="b2">2 提問</span><span id="b3">3 抽牌</span><span id="b4">4 結果</span>
+  </div>
+
+  <div class="step on" id="s1">
+    <h2>選擇一個牌陣</h2>
+    <div class="cards3" id="spreadList"></div>
+  </div>
+
+  <div class="step" id="s2">
+    <h2>你想問什麼？</h2>
+    <textarea id="qtext" placeholder="例如：我和現在這位對象有沒有長期發展的可能？&#10;例如：該不該接下這個新的工作機會？"></textarea>
+    <div style="font-size:13px;color:#8b8075;margin-top:10px">這個提問偏向哪個面向？</div>
+    <div class="chips" id="aspects"></div>
+    <button class="go" id="toDraw">開始抽牌</button>
+    <button class="ghost" onclick="goto(1)">上一步</button>
+  </div>
+
+  <div class="step" id="s3">
+    <h2>洗牌與抽牌</h2>
+    <div class="shufrow">
+      <button class="shuf" id="shufBtn">按住洗牌</button>
+      <span class="shufhint" id="shufHint">按住不放，牌會一直洗；放開就停下來。心裡想著你的提問。</span>
+    </div>
+    <div class="prog">已抽 <b id="cnt">0</b> / <span id="need">0</span> 張</div>
+    <div class="slotnow" id="slotNow"></div>
+    <div class="taken" id="taken"></div>
+    <div class="deck" id="deck"></div>
+    <div class="foot"><button class="ghost" id="reshuffle">全部重來</button></div>
+  </div>
+
+  <div class="step" id="s4">
+    <div class="q" id="qEcho"></div>
+    <div class="board" id="board"></div>
+    <div class="rows" id="rows"></div>
+    <div class="copybox">
+      <p>把下面這段文字傳給幫你解牌的人就可以了。</p>
+      <textarea id="exportText" readonly></textarea>
+      <div class="cpbtns">
+        <button class="go" id="copyBtn">複製結果</button>
+        <button class="ghost" id="dlBtn">下載成文字檔</button>
+        <span class="ok" id="copyOk"></span>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="go" id="again">再抽一次</button>
+      <button class="ghost" id="toHis">看抽牌紀錄</button>
+    </div>
+  </div>
+
+  <div class="step" id="s5">
+    <div class="topbar" style="margin-bottom:16px">
+      <h2 style="margin:0" id="hisTitle">抽牌紀錄</h2>
+      <div style="display:flex;gap:8px">
+        <button class="ghost" id="hisBack">回到抽牌</button>
+        <button class="ghost" id="hisClear">清空全部</button>
+      </div>
+    </div>
+    <div id="hisList" class="hislist"></div>
+    <div id="hisDetail" class="detail">
+      <button class="ghost" id="detBack" style="margin-bottom:16px">← 回到列表</button>
+      <div class="q" id="dEcho"></div>
+      <div class="board" id="dBoard"></div>
+      <div class="rows" id="dRows"></div>
+      <div class="copybox">
+        <p>這一次的結果：</p>
+        <textarea id="dExport" readonly></textarea>
+        <div class="cpbtns">
+          <button class="go" id="dCopy">複製結果</button>
+          <span class="ok" id="dCopyOk"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ovl" id="ovl">
+  <div class="revealbox">
+    <div class="rslot" id="rslot"></div>
+    <div class="perspec">
+      <div class="flip" id="flip">
+        <div class="fface ffront" id="ffront"></div>
+        <div class="fface fback"></div>
+      </div>
+    </div>
+    <div class="rname" id="rname"></div>
+    <button class="go" id="nextBtn">繼續</button>
+  </div>
+</div>
+
+<script>
+const DECK = [{"zh":"愚者","en":"The Fool","group":"大阿爾克納"},{"zh":"魔術師","en":"The Magician","group":"大阿爾克納"},{"zh":"女祭司","en":"The High Priestess","group":"大阿爾克納"},{"zh":"皇后","en":"The Empress","group":"大阿爾克納"},{"zh":"皇帝","en":"The Emperor","group":"大阿爾克納"},{"zh":"教皇","en":"The Hierophant","group":"大阿爾克納"},{"zh":"戀人","en":"The Lovers","group":"大阿爾克納"},{"zh":"戰車","en":"The Chariot","group":"大阿爾克納"},{"zh":"力量","en":"Strength","group":"大阿爾克納"},{"zh":"隱者","en":"The Hermit","group":"大阿爾克納"},{"zh":"命運之輪","en":"Wheel of Fortune","group":"大阿爾克納"},{"zh":"正義","en":"Justice","group":"大阿爾克納"},{"zh":"吊人","en":"The Hanged Man","group":"大阿爾克納"},{"zh":"死神","en":"Death","group":"大阿爾克納"},{"zh":"節制","en":"Temperance","group":"大阿爾克納"},{"zh":"惡魔","en":"The Devil","group":"大阿爾克納"},{"zh":"高塔","en":"The Tower","group":"大阿爾克納"},{"zh":"星星","en":"The Star","group":"大阿爾克納"},{"zh":"月亮","en":"The Moon","group":"大阿爾克納"},{"zh":"太陽","en":"The Sun","group":"大阿爾克納"},{"zh":"審判","en":"Judgement","group":"大阿爾克納"},{"zh":"世界","en":"The World","group":"大阿爾克納"},{"zh":"權杖一","en":"Ace of Wands","group":"權杖牌組"},{"zh":"權杖二","en":"Two of Wands","group":"權杖牌組"},{"zh":"權杖三","en":"Three of Wands","group":"權杖牌組"},{"zh":"權杖四","en":"Four of Wands","group":"權杖牌組"},{"zh":"權杖五","en":"Five of Wands","group":"權杖牌組"},{"zh":"權杖六","en":"Six of Wands","group":"權杖牌組"},{"zh":"權杖七","en":"Seven of Wands","group":"權杖牌組"},{"zh":"權杖八","en":"Eight of Wands","group":"權杖牌組"},{"zh":"權杖九","en":"Nine of Wands","group":"權杖牌組"},{"zh":"權杖十","en":"Ten of Wands","group":"權杖牌組"},{"zh":"權杖侍者","en":"Page of Wands","group":"權杖牌組"},{"zh":"權杖騎士","en":"Knight of Wands","group":"權杖牌組"},{"zh":"權杖皇后","en":"Queen of Wands","group":"權杖牌組"},{"zh":"權杖國王","en":"King of Wands","group":"權杖牌組"},{"zh":"聖杯一","en":"Ace of Cups","group":"聖杯牌組"},{"zh":"聖杯二","en":"Two of Cups","group":"聖杯牌組"},{"zh":"聖杯三","en":"Three of Cups","group":"聖杯牌組"},{"zh":"聖杯四","en":"Four of Cups","group":"聖杯牌組"},{"zh":"聖杯五","en":"Five of Cups","group":"聖杯牌組"},{"zh":"聖杯六","en":"Six of Cups","group":"聖杯牌組"},{"zh":"聖杯七","en":"Seven of Cups","group":"聖杯牌組"},{"zh":"聖杯八","en":"Eight of Cups","group":"聖杯牌組"},{"zh":"聖杯九","en":"Nine of Cups","group":"聖杯牌組"},{"zh":"聖杯十","en":"Ten of Cups","group":"聖杯牌組"},{"zh":"聖杯侍者","en":"Page of Cups","group":"聖杯牌組"},{"zh":"聖杯騎士","en":"Knight of Cups","group":"聖杯牌組"},{"zh":"聖杯皇后","en":"Queen of Cups","group":"聖杯牌組"},{"zh":"聖杯國王","en":"King of Cups","group":"聖杯牌組"},{"zh":"寶劍一","en":"Ace of Swords","group":"寶劍牌組"},{"zh":"寶劍二","en":"Two of Swords","group":"寶劍牌組"},{"zh":"寶劍三","en":"Three of Swords","group":"寶劍牌組"},{"zh":"寶劍四","en":"Four of Swords","group":"寶劍牌組"},{"zh":"寶劍五","en":"Five of Swords","group":"寶劍牌組"},{"zh":"寶劍六","en":"Six of Swords","group":"寶劍牌組"},{"zh":"寶劍七","en":"Seven of Swords","group":"寶劍牌組"},{"zh":"寶劍八","en":"Eight of Swords","group":"寶劍牌組"},{"zh":"寶劍九","en":"Nine of Swords","group":"寶劍牌組"},{"zh":"寶劍十","en":"Ten of Swords","group":"寶劍牌組"},{"zh":"寶劍侍者","en":"Page of Swords","group":"寶劍牌組"},{"zh":"寶劍騎士","en":"Knight of Swords","group":"寶劍牌組"},{"zh":"寶劍皇后","en":"Queen of Swords","group":"寶劍牌組"},{"zh":"寶劍國王","en":"King of Swords","group":"寶劍牌組"},{"zh":"五角星一","en":"Ace of Pentacles","group":"五角星牌組"},{"zh":"五角星二","en":"Two of Pentacles","group":"五角星牌組"},{"zh":"五角星三","en":"Three of Pentacles","group":"五角星牌組"},{"zh":"五角星四","en":"Four of Pentacles","group":"五角星牌組"},{"zh":"五角星五","en":"Five of Pentacles","group":"五角星牌組"},{"zh":"五角星六","en":"Six of Pentacles","group":"五角星牌組"},{"zh":"五角星七","en":"Seven of Pentacles","group":"五角星牌組"},{"zh":"五角星八","en":"Eight of Pentacles","group":"五角星牌組"},{"zh":"五角星九","en":"Nine of Pentacles","group":"五角星牌組"},{"zh":"五角星十","en":"Ten of Pentacles","group":"五角星牌組"},{"zh":"五角星侍者","en":"Page of Pentacles","group":"五角星牌組"},{"zh":"五角星騎士","en":"Knight of Pentacles","group":"五角星牌組"},{"zh":"五角星皇后","en":"Queen of Pentacles","group":"五角星牌組"},{"zh":"五角星國王","en":"King of Pentacles","group":"五角星牌組"}];
+const SPREADS = [{"key":"general","name":"大體分析的牌陣","purpose":"用於分析整體狀況。提問可以是人、事件或問題。","box":{"x":1.25,"y":1.23,"w":4.37,"h":5.29,"cw":0.93,"ch":1.22},"slots":[{"n":1,"x":1.25,"y":1.23,"label":"過去","desc":"與提問有關的過去，最早追溯到 18 個月前","left":0,"top":0},{"n":2,"x":1.25,"y":2.71,"label":"目前狀況","desc":"與提問有關的目前狀況，占卜前後 4 週","left":0,"top":27.977315689981097},{"n":3,"x":1.25,"y":4.19,"label":"近期結果","desc":"目前狀況最近會產生的結果，涵蓋最近 3 個月內","left":0,"top":55.95463137996221},{"n":4,"x":2.88,"y":5.3,"label":"對方／答案","desc":"提問中提到的人的情況，或問題的答案","left":37.29977116704805,"top":76.93761814744802},{"n":5,"x":4.69,"y":4.19,"label":"周遭能量","desc":"環繞在問卜者的能量、問題的能量，以及相關的人的態度","left":78.71853546910755,"top":55.95463137996221},{"n":6,"x":4.69,"y":2.71,"label":"恐懼","desc":"問卜者對提問的人、事件、問題的恐懼","left":78.71853546910755,"top":27.977315689981097},{"n":7,"x":4.69,"y":1.23,"label":"最終結果","desc":"提問中的人、事件、問題的結果，在 24 個月以內","left":78.71853546910755,"top":0}],"aspect":0.8260869565217391,"cardW":21.28146453089245,"cardH":23.062381852551983},{"key":"spirit","name":"精神分析的牌陣","purpose":"用於分析要面對、需要學習的課題，幫助看清楚提問的情況，以及為何會陷於困境。","box":{"x":1.25,"y":1.23,"w":5.6,"h":1.22,"cw":0.93,"ch":1.22},"slots":[{"n":1,"x":1.25,"y":1.23,"label":"健康","desc":"健康面向，指身體上的健康","left":0,"top":0},{"n":2,"x":2.42,"y":1.23,"label":"精神狀態","desc":"目前的精神面向","left":20.892857142857142,"top":0},{"n":3,"x":3.58,"y":1.23,"label":"立即課題","desc":"立即性的課題，目前狀況可以學到什麼事情","left":41.60714285714286,"top":0},{"n":4,"x":4.75,"y":1.23,"label":"替代途徑","desc":"若對提問的內容感到不開心，此張牌是可以取代的途徑","left":62.5,"top":0},{"n":5,"x":5.92,"y":1.23,"label":"過去的影響","desc":"被過去所影響的事故或狀況","left":83.39285714285715,"top":0}],"aspect":4.590163934426229,"cardW":16.607142857142858,"cardH":100},{"key":"objective","name":"客觀觀察的牌陣","purpose":"檢視哪些是可以控制、哪些是無法控制、需要為哪些事情負責，以及有哪些改變的機會。","box":{"x":0.42,"y":0.94,"w":4.18,"h":4.79,"cw":0.93,"ch":1.22},"slots":[{"n":1,"x":0.42,"y":2.72,"label":"有利因素","desc":"哪些是有利於提問的情況","left":0,"top":37.160751565762006},{"n":2,"x":3.67,"y":2.72,"label":"阻力","desc":"哪些是和提問情況對抗的","left":77.75119617224881,"top":37.160751565762006},{"n":3,"x":2.04,"y":0.94,"label":"失控之處","desc":"哪些失控、可能會發生什麼事","left":38.755980861244026,"top":0},{"n":4,"x":2.04,"y":4.51,"label":"運用意志的結果","desc":"在問卜者的控制下，如果運用意志力，這張牌代表的結果","left":38.755980861244026,"top":74.53027139874739},{"n":5,"x":2.04,"y":2.72,"label":"不行動的結果","desc":"若不採取第 4 張牌的機會，會造成什麼結果","left":38.755980861244026,"top":37.160751565762006}],"aspect":0.8726513569937369,"cardW":22.2488038277512,"cardH":25.469728601252612}];
+const ASPECTS = ["一般／整體", "感情", "友情／人際", "事業／學業／金錢", "健康／身心狀態"];
+
+let state = { spread: null, aspect: 0, question: "", order: [], picks: [], recId: null };
+
+function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+function goto(n) {
+  for (let i = 1; i <= 5; i++) document.getElementById("s" + i).classList.toggle("on", i === n);
+  document.getElementById("stepbar").style.display = n === 5 ? "none" : "flex";
+  document.getElementById("hisBtn").style.display = n === 5 ? "none" : "block";
+  for (let i = 1; i <= 4; i++) {
+    const b = document.getElementById("b" + i);
+    b.className = i === n ? "cur" : (i < n ? "done" : "");
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* Step 1 */
+const list = document.getElementById("spreadList");
+SPREADS.forEach((sp) => {
+  const btn = document.createElement("button");
+  btn.className = "pick";
+  const mini = sp.slots.map((sl) =>
+    '<i style="left:' + sl.left + '%;top:' + sl.top + '%;width:' + sp.cardW + '%;height:' + sp.cardH + '%">' + sl.n + '</i>'
+  ).join("");
+  btn.innerHTML = "<b>" + sp.name + "</b><p>" + sp.purpose + "</p>" +
+    '<div class="mini" style="aspect-ratio:' + sp.aspect + '">' + mini + "</div>" +
+    '<span class="cnt">' + sp.slots.length + " 張牌</span>";
+  btn.onclick = () => { state.spread = sp; goto(2); };
+  list.appendChild(btn);
+});
+
+/* Step 2 */
+const chipBox = document.getElementById("aspects");
+ASPECTS.forEach((label, i) => {
+  const c = document.createElement("button");
+  c.className = "chip" + (i === 0 ? " on" : "");
+  c.textContent = label;
+  c.onclick = () => {
+    state.aspect = i;
+    [...chipBox.children].forEach((x) => x.classList.remove("on"));
+    c.classList.add("on");
+  };
+  chipBox.appendChild(c);
+});
+document.getElementById("toDraw").onclick = () => {
+  const q = document.getElementById("qtext").value.trim();
+  if (!q) { alert("請先輸入你的提問。"); return; }
+  state.question = q;
+  startDraw();
+};
+
+/* Step 3 */
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+const deckEl = document.getElementById("deck");
+function startDraw() {
+  state.order = shuffle([...Array(78).keys()]);
+  state.picks = [];
+  document.getElementById("need").textContent = state.spread.slots.length;
+  document.getElementById("cnt").textContent = "0";
+  document.getElementById("taken").innerHTML = "";
+  document.getElementById("shufHint").textContent = "按住不放，牌會一直洗；放開就停下來。心裡想著你的提問。";
+  ovl.classList.remove("on");
+  deckEl.innerHTML = "";
+  for (let i = 0; i < 78; i++) {
+    const b = document.createElement("button");
+    b.className = "back";
+    b.onclick = () => pick(i, b);
+    deckEl.appendChild(b);
+  }
+  updateSlotNow();
+  goto(3);
+}
+function updateSlotNow() {
+  const sl = state.spread.slots[state.picks.length];
+  const box = document.getElementById("slotNow");
+  if (!sl) { box.textContent = "抽牌完成，正在整理牌陣……"; return; }
+  box.innerHTML = "現在抽的是第 <b>" + sl.n + "</b> 張 —— <b>" + sl.label + "</b><br>" + sl.desc;
+}
+let shufTimer = null;
+function jitter() {
+  shuffle(state.order);
+  for (const b of deckEl.children) {
+    if (b.classList.contains("used")) continue;
+    b.style.transform = "translate(" + ((Math.random() - .5) * 26) + "px," +
+      ((Math.random() - .5) * 26) + "px) rotate(" + ((Math.random() - .5) * 22) + "deg)";
+  }
+}
+function startShuffle(e) {
+  if (e) e.preventDefault();
+  if (shufTimer) return;
+  document.getElementById("shufBtn").classList.add("on");
+  document.getElementById("shufHint").textContent = "洗牌中……放開就停。";
+  deckEl.classList.add("shuffling");
+  jitter();
+  shufTimer = setInterval(jitter, 120);
+}
+function stopShuffle() {
+  if (!shufTimer) return;
+  clearInterval(shufTimer); shufTimer = null;
+  document.getElementById("shufBtn").classList.remove("on");
+  document.getElementById("shufHint").textContent = "洗好了，接著點下方任何一張牌背。";
+  deckEl.classList.remove("shuffling");
+  for (const b of deckEl.children) b.style.transform = "";
+}
+const shufBtn = document.getElementById("shufBtn");
+shufBtn.addEventListener("pointerdown", startShuffle);
+["pointerup", "pointercancel", "pointerleave"].forEach((ev) => shufBtn.addEventListener(ev, stopShuffle));
+window.addEventListener("blur", stopShuffle);
+
+const ovl = document.getElementById("ovl");
+const flip = document.getElementById("flip");
+const nextBtn = document.getElementById("nextBtn");
+
+function pick(i, el) {
+  if (shufTimer) return;
+  if (el.classList.contains("used")) return;
+  if (state.picks.length >= state.spread.slots.length) return;
+  const slot = state.spread.slots[state.picks.length];
+  const p = { card: DECK[state.order[i]], rev: Math.random() < 0.5 };
+  el.classList.add("used"); el.onclick = null;
+  state.picks.push(p);
+  document.getElementById("cnt").textContent = state.picks.length;
+  const chip = document.createElement("span");
+  chip.className = "tk";
+  chip.innerHTML = "<b>" + slot.n + " " + slot.label + "</b>　" + p.card.zh +
+    ' <span class="' + (p.rev ? "r" : "u") + '">' + (p.rev ? "逆" : "正") + "</span>";
+  document.getElementById("taken").appendChild(chip);
+  reveal(slot, p);
+}
+function reveal(slot, p) {
+  const last = state.picks.length === state.spread.slots.length;
+  document.getElementById("rslot").innerHTML = "第 <b>" + slot.n + "</b> 張 · <b>" + slot.label + "</b>";
+  document.getElementById("ffront").className = "fface ffront" + (p.rev ? " rev" : "");
+  document.getElementById("ffront").innerHTML =
+    '<div class="inner"><span class="grp">' + p.card.group + '</span><span class="zh">' + p.card.zh +
+    '</span><span class="en">' + p.card.en + "</span></div>";
+  document.getElementById("rname").innerHTML =
+    '<span class="badge ' + (p.rev ? "rev" : "up") + '">' + (p.rev ? "逆位" : "正位") + "</span>";
+  nextBtn.textContent = last ? "看結果" : "繼續抽下一張";
+  flip.classList.remove("on");
+  ovl.classList.add("on");
+  requestAnimationFrame(() => requestAnimationFrame(() => flip.classList.add("on")));
+  nextBtn.onclick = () => {
+    ovl.classList.remove("on"); flip.classList.remove("on");
+    updateSlotNow();
+    if (last) setTimeout(render, 150);
+  };
+}
+document.getElementById("reshuffle").onclick = startDraw;
+
+/* Step 4 */
+function buildEcho(el, sp, aspect, question) {
+  el.innerHTML = "<b>牌陣：</b>" + sp.name + "　<b>面向：</b>" + ASPECTS[aspect] +
+    "<br><b>提問：</b>" + esc(question);
+}
+function buildBoard(board, sp, picks) {
+  board.style.aspectRatio = sp.aspect;
+  board.style.maxWidth = (sp.aspect > 2 ? 900 : 520) + "px";
+  board.innerHTML = "";
+  sp.slots.forEach((sl, i) => {
+    const p = picks[i];
+    const div = document.createElement("div");
+    div.className = "slot";
+    div.style.cssText = "left:" + sl.left + "%;top:" + sl.top + "%;width:" + sp.cardW + "%;height:" + sp.cardH + "%";
+    div.innerHTML = '<div class="slotcard' + (p.rev ? " rev" : "") + '"><span class="no">' + sl.n +
+      '</span><span class="nm">' + p.card.zh + '</span><span class="or ' + (p.rev ? "rev" : "up") + '">' +
+      (p.rev ? "逆位" : "正位") + "</span></div>";
+    board.appendChild(div);
+  });
+}
+function buildRows(el, sp, picks) {
+  el.innerHTML = "";
+  sp.slots.forEach((sl, i) => {
+    const p = picks[i];
+    const r = document.createElement("div");
+    r.className = "row";
+    r.innerHTML = '<span class="idx">' + sl.n + '.</span><span class="lab">' + sl.label + "</span>" +
+      '<span class="cd">' + p.card.zh + "<em>" + p.card.en + "</em></span>" +
+      '<span class="or ' + (p.rev ? "rev" : "up") + '">' + (p.rev ? "逆位" : "正位") + "</span>";
+    el.appendChild(r);
+  });
+}
+function exportText(rec) {
+  const sp = SPREADS.find((s) => s.key === rec.spreadKey);
+  const lines = [
+    "【塔羅抽牌結果】",
+    "時間：" + rec.when,
+    "牌陣：" + rec.spreadName,
+    "面向：" + ASPECTS[rec.aspect],
+    "提問：" + rec.question,
+    "",
+  ];
+  sp.slots.forEach((sl, i) => {
+    const p = rec.picks[i];
+    lines.push(sl.n + ". " + sl.label + "（" + sl.desc + "）：" + p.zh + "　" + (p.rev ? "逆位" : "正位"));
+  });
+  return lines.join("\n");
+}
+function render() {
+  const sp = state.spread;
+  buildEcho(document.getElementById("qEcho"), sp, state.aspect, state.question);
+  buildBoard(document.getElementById("board"), sp, state.picks);
+  buildRows(document.getElementById("rows"), sp, state.picks);
+  const rec = saveRecord();
+  state.recId = rec.id;
+  document.getElementById("exportText").value = exportText(rec);
+  document.getElementById("copyOk").textContent = "";
+  goto(4);
+}
+function doCopy(taId, okId) {
+  const ta = document.getElementById(taId);
+  ta.select();
+  ta.setSelectionRange(0, 99999);
+  let done = false;
+  try { done = document.execCommand("copy"); } catch (e) {}
+  if (!done && navigator.clipboard) { navigator.clipboard.writeText(ta.value); done = true; }
+  document.getElementById(okId).textContent = done ? "已複製" : "請手動選取複製";
+  setTimeout(() => { document.getElementById(okId).textContent = ""; }, 2500);
+}
+document.getElementById("copyBtn").onclick = () => doCopy("exportText", "copyOk");
+document.getElementById("dCopy").onclick = () => doCopy("dExport", "dCopyOk");
+document.getElementById("dlBtn").onclick = () => {
+  const blob = new Blob([document.getElementById("exportText").value], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "塔羅抽牌結果.txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+document.getElementById("again").onclick = () => {
+  state = { spread: null, aspect: state.aspect, question: "", order: [], picks: [], recId: null };
+  document.getElementById("qtext").value = "";
+  goto(1);
+};
+
+/* 紀錄 */
+const HKEY = "tarot.share.v1";
+function loadHistory() { try { return JSON.parse(localStorage.getItem(HKEY)) || []; } catch (e) { return []; } }
+function writeHistory(l) { try { localStorage.setItem(HKEY, JSON.stringify(l.slice(0, 300))); } catch (e) {} }
+function stamp(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "/" + p(d.getMonth() + 1) + "/" + p(d.getDate()) +
+    "（" + "日一二三四五六"[d.getDay()] + "）" + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function saveRecord() {
+  const now = new Date();
+  const rec = {
+    id: String(now.getTime()) + "-" + Math.random().toString(36).slice(2, 7),
+    iso: now.toISOString(), when: stamp(now),
+    spreadKey: state.spread.key, spreadName: state.spread.name,
+    aspect: state.aspect, question: state.question,
+    picks: state.picks.map((p) => ({ zh: p.card.zh, en: p.card.en, rev: p.rev })),
+  };
+  const l = loadHistory(); l.unshift(rec); writeHistory(l);
+  return rec;
+}
+function findCard(zh) { return DECK.find((c) => c.zh === zh); }
+function showHistory() {
+  document.getElementById("hisDetail").classList.remove("on");
+  document.getElementById("hisList").style.display = "flex";
+  document.getElementById("hisTitle").textContent = "抽牌紀錄";
+  const box = document.getElementById("hisList");
+  const l = loadHistory();
+  box.innerHTML = "";
+  if (!l.length) {
+    box.innerHTML = '<div class="empty">還沒有任何紀錄。完成一次抽牌後就會自動存在這裡。</div>';
+    goto(5); return;
+  }
+  l.forEach((r) => {
+    const row = document.createElement("div");
+    row.className = "hisrow";
+    const cards = r.picks.map((p) => p.zh + (p.rev ? "逆" : "正")).join("、");
+    row.innerHTML = '<div class="info"><div class="when">' + esc(r.when) + "</div>" +
+      '<div class="qq">' + esc(r.question) + "</div>" +
+      '<div class="meta"><em>' + esc(r.spreadName) + "</em>　" + esc(ASPECTS[r.aspect]) +
+      "　" + esc(cards) + "</div></div><button class=\"del\">刪除</button>";
+    row.querySelector(".info").onclick = () => showDetail(r.id);
+    row.querySelector(".del").onclick = (e) => {
+      e.stopPropagation();
+      if (!confirm("確定要刪除這筆紀錄嗎？")) return;
+      writeHistory(loadHistory().filter((x) => x.id !== r.id));
+      showHistory();
+    };
+    box.appendChild(row);
+  });
+  goto(5);
+}
+function showDetail(id) {
+  const r = loadHistory().find((x) => x.id === id);
+  if (!r) return;
+  const sp = SPREADS.find((s) => s.key === r.spreadKey);
+  const picks = r.picks.map((p) => ({ card: findCard(p.zh) || { zh: p.zh, en: p.en || "", group: "" }, rev: p.rev }));
+  if (!sp) return;
+  document.getElementById("hisTitle").textContent = "紀錄 · " + r.when;
+  document.getElementById("hisList").style.display = "none";
+  document.getElementById("hisDetail").classList.add("on");
+  buildEcho(document.getElementById("dEcho"), sp, r.aspect, r.question);
+  buildBoard(document.getElementById("dBoard"), sp, picks);
+  buildRows(document.getElementById("dRows"), sp, picks);
+  document.getElementById("dExport").value = exportText(r);
+  document.getElementById("dCopyOk").textContent = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+document.getElementById("hisBtn").onclick = showHistory;
+document.getElementById("toHis").onclick = showHistory;
+document.getElementById("detBack").onclick = showHistory;
+document.getElementById("hisBack").onclick = () => goto(state.picks.length ? 4 : 1);
+document.getElementById("hisClear").onclick = () => {
+  if (!loadHistory().length) return;
+  if (!confirm("確定要清空所有抽牌紀錄嗎？此動作無法復原。")) return;
+  writeHistory([]); showHistory();
+};
+</script>
+</body>
+</html>
