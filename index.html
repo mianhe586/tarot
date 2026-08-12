@@ -55,13 +55,13 @@ button.shuf.on { background: #2e3f5c; color: #fff; }
 .tk { font-size: 12px; padding: 5px 12px; border-radius: 999px; background: #fff;
   border: 1px solid #ddd3c4; color: #4a4137; }
 .tk b { color: #2e3f5c; } .tk .u { color: #4a6b47; } .tk .r { color: #9a5449; }
-.deck { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px,1fr)); gap: 7px; margin-top: 16px; }
-.back { aspect-ratio: 5/8; border-radius: 4px; cursor: pointer; border: none; padding: 0;
+.deck { display: grid; overflow: visible; grid-template-columns: repeat(auto-fill, minmax(38px,1fr)); gap: 7px; margin-top: 16px; }
+.back { aspect-ratio: 5/8; position: relative; border-radius: 4px; cursor: pointer; border: none; padding: 0;
   background: repeating-linear-gradient(45deg,#2e3f5c,#2e3f5c 3px,#3a4d6e 3px,#3a4d6e 6px);
   transition: transform .13s ease, box-shadow .13s ease, background .2s; }
 .back:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(46,63,92,.3); }
 .back.used { background: #e3ddd2; cursor: default; transform: none !important; box-shadow: none; }
-.deck.shuffling .back { transition: transform .11s cubic-bezier(.4,0,.5,1); }
+.deck.shuffling .back { transition: transform .26s cubic-bezier(.45,.05,.3,1); }
 .deck.shuffling .back:hover { box-shadow: none; }
 .ovl { position: fixed; inset: 0; background: rgba(36,31,26,.55); display: none;
   align-items: center; justify-content: center; padding: 20px; z-index: 50; }
@@ -314,12 +314,24 @@ function updateSlotNow() {
   box.innerHTML = "現在抽的是第 <b>" + sl.n + "</b> 張 —— <b>" + sl.label + "</b>";
 }
 let shufTimer = null;
+let phase = 0;
 function jitter() {
   shuffle(state.order);
-  for (const b of deckEl.children) {
+  phase++;
+  const dir = phase % 2 ? 1 : -1;                 // 每一拍換一次方向
+  const w = deckEl.clientWidth || 600;
+  const amp = Math.min(110, w * 0.26);            // 左右滑動的幅度
+  const backs = deckEl.children;
+  for (let i = 0; i < backs.length; i++) {
+    const b = backs[i];
     if (b.classList.contains("used")) continue;
-    b.style.transform = "translate(" + ((Math.random() - .5) * 26) + "px," +
-      ((Math.random() - .5) * 26) + "px) rotate(" + ((Math.random() - .5) * 22) + "deg)";
+    const hand = i % 2 ? 1 : -1;                  // 兩「手」交錯推送
+    const dx = dir * hand * amp * (0.5 + Math.random() * 0.5);
+    const dy = (Math.random() - 0.5) * 12;
+    const rz = dir * hand * (3 + Math.random() * 9);
+    b.style.zIndex = Math.floor(Math.random() * 12);
+    b.style.transform = "translate(" + dx.toFixed(1) + "px," + dy.toFixed(1) +
+      "px) rotate(" + rz.toFixed(1) + "deg)";
   }
 }
 function startShuffle(e) {
@@ -329,7 +341,7 @@ function startShuffle(e) {
   document.getElementById("shufHint").textContent = "洗牌中……放開就停。";
   deckEl.classList.add("shuffling");
   jitter();
-  shufTimer = setInterval(jitter, 120);
+  shufTimer = setInterval(jitter, 260);
 }
 function stopShuffle() {
   if (!shufTimer) return;
@@ -337,7 +349,7 @@ function stopShuffle() {
   document.getElementById("shufBtn").classList.remove("on");
   document.getElementById("shufHint").textContent = "洗好了，接著點下方任何一張牌背。";
   deckEl.classList.remove("shuffling");
-  for (const b of deckEl.children) b.style.transform = "";
+  for (const b of deckEl.children) { b.style.transform = ""; b.style.zIndex = ""; }
 }
 const shufBtn = document.getElementById("shufBtn");
 shufBtn.addEventListener("pointerdown", startShuffle);
