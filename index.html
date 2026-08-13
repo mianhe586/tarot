@@ -358,7 +358,7 @@ function frame(ts) {
     if (!q || b.classList.contains("used")) continue;
 
     // 內圈轉得比外圈快，整片就會被扭成螺旋
-    const w = 1.55 - 0.72 * q.rn;
+    const w = 2.6 - 1.2 * q.rn;
     // 角度上再加一段自己的漂移，同一圈的牌會彼此穿越
     const a = q.a0 - w * t + 0.4 * Math.sin(q.f3 * t + q.p3) + q.lead;
     // 半徑大幅起伏並整體往中心壓，牌就會擠成一堆互相疊
@@ -368,7 +368,7 @@ function frame(ts) {
 
     const x = Math.cos(a) * rn * q.hw - q.hx + Math.sin(q.f4 * t + q.p4) * 10;
     const y = Math.sin(a) * rn * q.hh - q.hy + Math.cos(q.f4 * t + q.p1) * 8;
-    const rot = -(38 + q.rn * 34) * t + 14 * Math.sin(q.f2 * t + q.p2);
+    const rot = -(70 + q.rn * 55) * t + 14 * Math.sin(q.f2 * t + q.p2);
 
     b.style.zIndex = String(200 + Math.round(Math.sin(a) * 70 +
       Math.sin(q.f2 * t + q.p2) * 45));
