@@ -46,6 +46,7 @@ button.shuf { padding: 11px 28px; border-radius: 999px; border: 1px solid #2e3f5
   color: #2e3f5c; font: inherit; font-size: 15px; cursor: pointer; user-select: none;
   -webkit-user-select: none; touch-action: none; }
 button.shuf.on { background: #2e3f5c; color: #fff; }
+button.shuf:disabled { border-color: #ddd3c4; color: #b3a894; background: #f5f0e7; cursor: not-allowed; }
 .shufhint { font-size: 13px; color: #8b8075; }
 .prog { font-size: 14px; color: #6d6459; margin: 8px 0 0; } .prog b { color: #2e3f5c; font-size: 16px; }
 .slotnow { background: #fff; border: 1px solid #ddd3c4; border-left: 4px solid #2e3f5c;
@@ -295,6 +296,7 @@ function startDraw() {
   document.getElementById("need").textContent = state.spread.slots.length;
   document.getElementById("cnt").textContent = "0";
   document.getElementById("taken").innerHTML = "";
+  unlockShuffle();
   document.getElementById("shufHint").textContent = "按住不放，牌會一直洗；放開就停下來。心裡想著你的提問。";
   ovl.classList.remove("on");
   deckEl.innerHTML = "";
@@ -380,7 +382,7 @@ function frame(ts) {
 
 function startShuffle(e) {
   if (e) e.preventDefault();
-  if (rafId) return;
+  if (rafId || state.picks.length) return;
   document.getElementById("shufBtn").classList.add("on");
   document.getElementById("shufHint").textContent = "洗牌中……放開就停。";
   deckEl.classList.add("shuffling");
@@ -402,6 +404,19 @@ function stopShuffle() {
 }
 
 const shufBtn = document.getElementById("shufBtn");
+
+function lockShuffle() {
+  stopShuffle();
+  shufBtn.disabled = true;
+  shufBtn.classList.add("locked");
+  document.getElementById("shufHint").textContent = "已經開始抽牌，這一輪不能再洗牌了。";
+}
+
+function unlockShuffle() {
+  shufBtn.disabled = false;
+  shufBtn.classList.remove("locked");
+}
+
 shufBtn.addEventListener("pointerdown", startShuffle);
 ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => shufBtn.addEventListener(ev, stopShuffle));
 window.addEventListener("blur", stopShuffle);
@@ -419,6 +434,7 @@ function pick(i, el) {
   el.classList.add("used"); el.onclick = null;
   state.picks.push(p);
   document.getElementById("cnt").textContent = state.picks.length;
+  if (state.picks.length === 1) lockShuffle();
   const chip = document.createElement("span");
   chip.className = "tk";
   chip.innerHTML = "<b>" + slot.n + "</b>　" + p.card.zh +
