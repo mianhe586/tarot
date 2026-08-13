@@ -423,7 +423,7 @@ function buildRows(el, sp, picks) {
     const p = picks[i];
     const r = document.createElement("div");
     r.className = "row";
-    r.innerHTML = '<span class="idx">' + sl.n + '.</span><span class="lab">' + sl.label + "</span>" +
+    r.innerHTML = '<span class="idx">' + sl.n + '.</span>' +
       '<span class="cd">' + p.card.zh + "<em>" + p.card.en + "</em></span>" +
       '<span class="or ' + (p.rev ? "rev" : "up") + '">' + (p.rev ? "逆位" : "正位") + "</span>";
     el.appendChild(r);
@@ -441,7 +441,7 @@ function exportText(rec) {
   ];
   sp.slots.forEach((sl, i) => {
     const p = rec.picks[i];
-    lines.push(sl.n + ". " + sl.label + "：" + p.zh + "　" + (p.rev ? "逆位" : "正位"));
+    lines.push(sl.n + ". " + p.zh + "　" + (p.rev ? "逆位" : "正位"));
   });
   return lines.join("\n");
 }
